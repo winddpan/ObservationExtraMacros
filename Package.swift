@@ -5,15 +5,15 @@ import CompilerPluginSupport
 import PackageDescription
 
 let package = Package(
-    name: "ObservationExMacros",
+    name: "ObservationExtraMacros",
     platforms: [
         .macOS(.v14), .iOS(.v17), .tvOS(.v17), .watchOS(.v10),
         .macCatalyst(.v17),
     ],
     products: [
         .executable(
-            name: "ObservationExMacrosClient",
-            targets: ["ObservationExMacrosClient"]
+            name: "ObservationExtraMacrosClient",
+            targets: ["ObservationExtraMacrosClient"]
         ),
         .library(
             name: "ObservationUserDefaults",
@@ -30,7 +30,7 @@ let package = Package(
     targets: [
         // Tests all in one
         .testTarget(
-            name: "ObservationExMacrosTests",
+            name: "ObservationExtraMacrosTests",
             dependencies: [
                 "ObservationUserDefaults",
                 "ObservationQuery",
@@ -41,7 +41,7 @@ let package = Package(
             path: "Tests"
         ),
         .executableTarget(
-            name: "ObservationExMacrosClient",
+            name: "ObservationExtraMacrosClient",
             dependencies: [
                 "ObservationUserDefaults",
                 "ObservationQuery",
