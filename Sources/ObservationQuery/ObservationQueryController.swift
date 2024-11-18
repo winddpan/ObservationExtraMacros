@@ -11,11 +11,11 @@ extension ModelContext {
 @MainActor @preconcurrency public class ObservationQueryController<Element: PersistentModel> {
     private var descriptor = FetchDescriptor<Element>()
 
-    private var shouldUpdate = false
-    private var modelContext: ModelContext?
     private var transaction: Transaction?
     private var animation: Animation?
-    public var onMutation: ((() -> Void) -> Void)?
+
+    private var onMutation: ((() -> Void) -> Void)?
+    private weak var modelContext: ModelContext?
 
     deinit {
         NotificationCenter.default.removeObserver(self)
@@ -28,54 +28,52 @@ extension ModelContext {
             name: ModelContext._swiftDataModelsChangedInContext,
             object: nil)
 
-        NotificationCenter.default.addObserver(
-            self,
-            selector: #selector(managedObjectContextObjectsDidChange),
-            name: .NSManagedObjectContextObjectsDidChange,
-            object: nil)
-    }
-
-    @objc private func managedObjectContextObjectsDidChange(_ notification: Notification) {
-        func mutationUpdate() {
-            onMutation?({ [weak self] in
-                self?._results = nil
-            })
-        }
-
-        if shouldUpdate {
-            self.modelContext = notification.object as? ModelContext
-            if let transaction {
-                withTransaction(transaction) {
-                    mutationUpdate()
-                }
-            } else if let animation {
-                withAnimation(animation) {
-                    mutationUpdate()
-                }
-            } else {
-                mutationUpdate()
-            }
-            shouldUpdate = false
-        }
     }
 
     @objc private func contextModelsChanged(_ notification: Notification) {
         guard let userInfo = notification.userInfo else { return }
+        guard let modelContext = notification.object as? ModelContext else { return }
+        self.modelContext = modelContext
+
         // since AnyPersistentObject is private we need to use string comparison of the types
         let search = "AnyPersistentObject(boxed: \(String(reflecting: Element.self)))"  // e.g. AppName.Item
         for key in ["updated", "inserted", "deleted"] {
             if let set = userInfo[key] as? Set<AnyHashable> {
                 if set.contains(where: { String(describing: $0) == search }) {
-                    shouldUpdate = true
+                    mutationUpdate()
                     return
                 }
             }
         }
     }
 
+    public func withinObservation(mutation: @escaping ((() -> Void) -> Void)) {
+        self.onMutation = mutation
+    }
+
+    public func mutationUpdate() {
+        if let transaction {
+            withTransaction(transaction) {
+                onMutation?({ [weak self] in
+                    self?._results = nil
+                })
+            }
+        } else if let animation {
+            withAnimation(animation) {
+                onMutation?({ [weak self] in
+                    self?._results = nil
+                })
+            }
+        } else {
+            onMutation?({ [weak self] in
+                self?._results = nil
+            })
+        }
+    }
+
     private(set) var _results: [Element]?
     public var results: [Element] {
-        if _results == nil, let modelContext {
+        if _results == nil, let modelContext = modelContext ?? ObservationQuery.modelContext {
             _results = try? modelContext.fetch(descriptor)
         }
         return _results ?? []

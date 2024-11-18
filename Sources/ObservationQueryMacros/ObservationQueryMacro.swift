@@ -35,11 +35,11 @@ public struct ObservationQueryMacro: PeerMacro, AccessorMacro {
         return [
             """
             get {
-                _\(raw: name).onMutation = { [weak self] mutation in
+                _\(raw: name).withinObservation(mutation: { [weak self] mutation in
                     self?.withMutation(keyPath: \\.\(raw: name)) {
                         mutation()
                     }
-                }
+                })
                 access(keyPath: \\.\(raw: name))
                 return _\(raw: name).results
             }

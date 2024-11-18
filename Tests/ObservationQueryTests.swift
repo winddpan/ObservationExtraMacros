@@ -27,11 +27,11 @@ final class ObservationQueryTests: XCTestCase {
                     @ObservationIgnored
                     var items: [Item] {
                         get {
-                            _items.onMutation = { [weak self] mutation in
+                            _items.withinObservation(mutation: { [weak self] mutation in
                                 self?.withMutation(keyPath: \.items) {
                                     mutation()
                                 }
-                            }
+                            })
                             access(keyPath: \.items)
                             return _items.results
                         }
@@ -61,11 +61,11 @@ final class ObservationQueryTests: XCTestCase {
                     @ObservationIgnored
                     var items: [Item] {
                         get {
-                            _items.onMutation = { [weak self] mutation in
+                            _items.withinObservation(mutation: { [weak self] mutation in
                                 self?.withMutation(keyPath: \.items) {
                                     mutation()
                                 }
-                            }
+                            })
                             access(keyPath: \.items)
                             return _items.results
                         }
