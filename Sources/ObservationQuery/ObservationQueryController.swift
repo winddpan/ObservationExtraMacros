@@ -1,3 +1,4 @@
+import CoreData
 import Foundation
 import SwiftData
 import SwiftUI
@@ -5,6 +6,8 @@ import SwiftUI
 extension ModelContext {
     fileprivate static let _swiftDataModelsChangedInContext = NSNotification.Name(
         rawValue: "_SwiftDataModelsChangedInContextNotificationPrivate")
+    static let swiftDataModelsChangedInContext = NSNotification.Name(
+        rawValue: "swiftDataModelsChangedInContextNotification")
 }
 
 @available(iOS 17.0, macOS 14.0, tvOS 17.0, watchOS 10.0, *)
@@ -13,6 +16,7 @@ extension ModelContext {
 
     private var transaction: Transaction?
     private var animation: Animation?
+    private var shouldUpdateAfterDidChange = false
 
     private var onMutation: ((() -> Void) -> Void)?
     private weak var modelContext: ModelContext?
@@ -28,6 +32,18 @@ extension ModelContext {
             name: ModelContext._swiftDataModelsChangedInContext,
             object: nil)
 
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(swiftDataModelsChanged),
+            name: ModelContext.swiftDataModelsChangedInContext,
+            object: nil)
+
+    }
+
+    @objc private func swiftDataModelsChanged(_ notification: Notification) {
+        if let object = notification.object as? String, object == String(describing: Element.self) {
+            immediateUpdate()
+        }
     }
 
     @objc private func contextModelsChanged(_ notification: Notification) {
@@ -35,15 +51,11 @@ extension ModelContext {
         guard let modelContext = notification.object as? ModelContext else { return }
         self.modelContext = modelContext
 
-        // since AnyPersistentObject is private we need to use string comparison of the types
-        let search = "AnyPersistentObject(boxed: \(String(reflecting: Element.self)))"  // e.g. AppName.Item
-        for key in ["updated", "inserted", "deleted"] {
-            if let set = userInfo[key] as? Set<AnyHashable> {
-                if set.contains(where: { String(describing: $0) == search }) {
-                    mutationUpdate()
-                    return
-                }
-            }
+        let array = [
+            modelContext.insertedModelsArray + modelContext.deletedModelsArray + modelContext.changedModelsArray
+        ].flatMap({ $0 })
+        if array.contains(where: { $0 is Element }) {
+            immediateUpdate()
         }
     }
 
@@ -51,7 +63,7 @@ extension ModelContext {
         self.onMutation = mutation
     }
 
-    public func mutationUpdate() {
+    public func immediateUpdate() {
         if let transaction {
             withTransaction(transaction) {
                 onMutation?({ [weak self] in

@@ -5,30 +5,8 @@
 //  Created by winddpan on 2024/11/17.
 //
 
-import Foundation
 import SwiftData
 import SwiftUI
-
-// Relate ModelContext in @ObservationQuery
-public struct ObservationQuery {
-    @MainActor public static var modelContext: ModelContext?
-}
-
-@available(iOS 17.0, macOS 14.0, tvOS 17.0, watchOS 10.0, *)
-extension View {
-    @MainActor @preconcurrency public func observationQueryModelContext(_ modelContext: ModelContext) -> Self {
-        ObservationQuery.modelContext = modelContext
-        return self
-    }
-}
-
-@available(iOS 17.0, macOS 14.0, tvOS 17.0, watchOS 10.0, *)
-extension Scene {
-    @MainActor @preconcurrency public func observationQueryModelContext(_ modelContext: ModelContext) -> Self {
-        ObservationQuery.modelContext = modelContext
-        return self
-    }
-}
 
 // Available when SwiftUI is imported with SwiftData
 @available(iOS 17.0, macOS 14.0, tvOS 17.0, watchOS 10.0, *)
