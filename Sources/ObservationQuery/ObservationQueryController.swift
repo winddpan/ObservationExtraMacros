@@ -38,6 +38,15 @@ extension ModelContext {
             name: ModelContext.swiftDataModelsChangedInContext,
             object: nil)
 
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(persistentStoreCoordinatorDidChang),
+            name: .NSPersistentStoreCoordinatorStoresDidChange,
+            object: nil)
+    }
+
+    @objc private func persistentStoreCoordinatorDidChang(_ notification: Notification) {
+        immediateUpdate()
     }
 
     @objc private func swiftDataModelsChanged(_ notification: Notification) {
