@@ -10,6 +10,10 @@ class UserDefaultsModel {
     @ObservationUserDefaults(key: "username")
     @ObservationIgnored
     var name: String = ""
+    
+    @ObservationUserDefaults(key: "username2")
+    @ObservationIgnored
+    var name2: String?
 }
 
 @Model
@@ -25,4 +29,18 @@ class QueryModel {
     @ObservationQuery(sort: \SwiftDataItem.orderIndex)
     @ObservationIgnored
     var items: [SwiftDataItem]
+    
+    var testList: [String] = []
+}
+
+
+struct TestView: View {
+    @Query(sort: \SwiftDataItem.orderIndex)
+    var items: [SwiftDataItem]
+    
+    var body: some View {
+        ForEach(items) { item in
+            Text("\(item.orderIndex)")
+        }
+    }
 }

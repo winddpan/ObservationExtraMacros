@@ -16,29 +16,15 @@ private let testMacros: [String: Macro.Type] = [
 ]
 
 final class ObservationUserDefaultsTests: XCTestCase {
-
-    func testUserDefaults() {
-        struct Item: Codable {
-            let name: String
-        }
-
-        let item = Item(name: "name")
-        UserDefaults.standard._$observationSet(item, forKey: "item")
-        let get = UserDefaults.standard._$observationGet(
-            Item.self, forKey: "item")
-        XCTAssertEqual(item.name, get?.name)
-
-        UserDefaults.standard._$observationSet("haha", forKey: "wa")
-        UserDefaults.standard.string(forKey: "wa")
-        XCTAssertEqual("haha", UserDefaults.standard.string(forKey: "wa"))
-    }
-
     func testUsage() {
         let test1 = TestModel()
         test1.name = "hello world"
 
         let test2 = TestModel()
         XCTAssertEqual(test2.name, "hello world")
+        
+        test1.name = "hello swift"
+        XCTAssertEqual(test2.name, "hello swift")
     }
 
     func testObservationUserDefaultsStandardStoreMacro() throws {
@@ -58,22 +44,23 @@ final class ObservationUserDefaultsTests: XCTestCase {
                     var name: String = "User" {
                         @storageRestrictions(initializes: _name)
                         init(initialValue) {
-                            _name = initialValue
+                            _name = ObservationUserDefaultsController<String>(userDefaults: .standard, key: "username", initialValue: initialValue)
                         }
                         get {
+                            _name.withinObservation(mutation: { [weak self] in
+                                self?.withMutation(keyPath: \.name) {
+                                        }
+                            })
                             access(keyPath: \.name)
-                            let store: UserDefaults = .standard
-                            return store._$observationGet(String.self, forKey: "username") ?? _name
+                            return _name.getValue()
                         }
                         set {
-                            withMutation(keyPath: \.name) {
-                                let store: UserDefaults = .standard
-                                store._$observationSet(newValue, forKey: "username")
-                            }
+                           _name.setValue(newValue)
                         }
                     }
 
-                    @ObservationIgnored private let _name: String
+                    @ObservationIgnored
+                    private let _name: ObservationUserDefaultsController<String>
                 }
                 """#,
             macros: testMacros
@@ -98,22 +85,23 @@ final class ObservationUserDefaultsTests: XCTestCase {
                     var val: Int = 1 {
                         @storageRestrictions(initializes: _val)
                         init(initialValue) {
-                            _val = initialValue
+                            _val = ObservationUserDefaultsController<Int>(userDefaults: .init(suiteName: "Store")!, key: "value", initialValue: initialValue)
                         }
                         get {
+                            _val.withinObservation(mutation: { [weak self] in
+                                self?.withMutation(keyPath: \.val) {
+                                        }
+                            })
                             access(keyPath: \.val)
-                            let store: UserDefaults = .init(suiteName: "Store")!
-                            return store._$observationGet(Int.self, forKey: "value") ?? _val
+                            return _val.getValue()
                         }
                         set {
-                            withMutation(keyPath: \.val) {
-                                let store: UserDefaults = .init(suiteName: "Store")!
-                                store._$observationSet(newValue, forKey: "value")
-                            }
+                           _val.setValue(newValue)
                         }
                     }
 
-                    @ObservationIgnored private let _val: Int
+                    @ObservationIgnored
+                    private let _val: ObservationUserDefaultsController<Int>
                 }
                 """#,
             macros: testMacros

@@ -17,7 +17,12 @@ extension ObservationUserDefaultsMacro: PeerMacro {
         let varDecl = try variableDecl(declaration)
         let name = try name(from: varDecl)
         let type = try type(from: varDecl)
-        return ["@ObservationIgnored private let _\(raw: name): \(raw: type)"]
+
+        let decl = """
+            @ObservationIgnored
+            private let _\(raw: name): ObservationUserDefaultsController<\(raw: type)>
+            """ as DeclSyntax
+        return [decl]
     }
 }
 
@@ -37,10 +42,10 @@ extension ObservationUserDefaultsMacro {
     }
 
     private static func type(from varDecl: VariableDeclSyntax) throws -> String {
-        guard let type = varDecl.bindings.first?.typeAnnotation?.type.as(IdentifierTypeSyntax.self)?.name.text else {
-            throw DiagnosticsError(node: Syntax(varDecl), message: .invalidTypeAnnotation)
+        if let type = varDecl.bindings.first?.typeAnnotation?.type.trimmedDescription  {
+            return type
         }
-        return type
+        throw DiagnosticsError(node: Syntax(varDecl), message: .invalidTypeAnnotation)
     }
 }
 
@@ -59,27 +64,26 @@ extension ObservationUserDefaultsMacro: AccessorMacro {
         let keyExpr = try keyExpr(from: arguments)
         let storeExpr = try userDefaultsExpr(from: arguments)
         return [
-            #"""
-            @storageRestrictions(initializes: _\#(raw: name))
+            """
+            @storageRestrictions(initializes: _\(raw: name))
             init(initialValue) {
-                _\#(raw: name) = initialValue
+                _\(raw: name) = ObservationUserDefaultsController<\(raw: type)>(userDefaults: \(storeExpr), key: \(keyExpr), initialValue: initialValue)
             }
-            """#,
-            #"""
+            """,
+            """
             get {
-                access(keyPath: \.\#(raw: name))
-                let store: UserDefaults = \#(storeExpr)
-                return store._$observationGet(\#(raw: type).self, forKey: \#(keyExpr)) ?? _\#(raw: name)
+                _\(raw: name).withinObservation(mutation: { [weak self] in
+                    self?.withMutation(keyPath: \\.\(raw: name)) {}
+                })
+                access(keyPath: \\.\(raw: name))
+                return _\(raw: name).getValue()
             }
-            """#,
-            #"""
+            """,
+            """
             set {
-                withMutation(keyPath: \.\#(raw: name)) {
-                    let store: UserDefaults = \#(storeExpr)
-                    store._$observationSet(newValue, forKey: \#(keyExpr))
-                }
+               _\(raw: name).setValue(newValue)
             }
-            """#,
+            """,
         ]
     }
 

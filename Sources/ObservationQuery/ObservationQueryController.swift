@@ -56,7 +56,6 @@ extension ModelContext {
     }
 
     @objc private func contextModelsChanged(_ notification: Notification) {
-        guard let userInfo = notification.userInfo else { return }
         guard let modelContext = notification.object as? ModelContext else { return }
         self.modelContext = modelContext
 
