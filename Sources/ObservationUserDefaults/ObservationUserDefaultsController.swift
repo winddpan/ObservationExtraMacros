@@ -42,6 +42,7 @@ public class ObservationUserDefaultsController<T>: NSObject {
 }
 
 extension ObservationUserDefaultsController {
+    @_disfavoredOverload
     public func getValue() -> T {
         if let value = value(forKey: key) as? T {
             return value
@@ -64,6 +65,7 @@ extension ObservationUserDefaultsController {
         return initialValue
     }
 
+    @_disfavoredOverload
     public func setValue(_ value: T?) {
         userDefaults.set(value, forKey: key)
     }
