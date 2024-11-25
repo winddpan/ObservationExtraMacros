@@ -28,19 +28,3 @@ extension Scene {
         return self
     }
 }
-
-extension ModelContext {
-    ///   Replaces the system's delete method and notifies @ObservationQuery to refresh.
-    /// - Parameters:
-    ///   - model: The type of the model to delete.
-    ///   - predicate: An optional predicate to filter the models to be deleted.
-    ///   - includeSubclasses: A boolean indicating whether to include subclasses in the deletion.
-    public func deleteWithinObservation<T>(
-        model: T.Type, where predicate: Predicate<T>? = nil, includeSubclasses: Bool = true
-    ) throws where T: PersistentModel {
-        try self.delete(model: model, where: predicate, includeSubclasses: includeSubclasses)
-        NotificationCenter.default
-            .post(name: ModelContext.swiftDataModelsChangedInContext, object: String.init(describing: model))
-    }
-
-}

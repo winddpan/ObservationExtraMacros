@@ -1,4 +1,5 @@
 import CoreData
+import Combine
 import Foundation
 import SwiftData
 import SwiftUI
@@ -6,14 +7,14 @@ import SwiftUI
 extension ModelContext {
     fileprivate static let _swiftDataModelsChangedInContext = NSNotification.Name(
         rawValue: "_SwiftDataModelsChangedInContextNotificationPrivate")
-    static let swiftDataModelsChangedInContext = NSNotification.Name(
-        rawValue: "swiftDataModelsChangedInContextNotification")
+
 }
 
 @available(iOS 17.0, macOS 14.0, tvOS 17.0, watchOS 10.0, *)
 @MainActor @preconcurrency public class ObservationQueryController<Element: PersistentModel> {
     private var descriptor = FetchDescriptor<Element>()
 
+    private var cancellables = Set<AnyCancellable>()
     private var transaction: Transaction?
     private var animation: Animation?
     private var shouldUpdateAfterDidChange = false
@@ -26,16 +27,19 @@ extension ModelContext {
     }
 
     private init() {
+        SwiftDataHistoryController.shared
+            .modelChanges.sink { [weak self] models in
+                guard let self else { return }
+                if models.contains("\(Element.self)") {
+                    self.immediateUpdate()
+                }
+            }
+            .store(in: &self.cancellables)
+        
         NotificationCenter.default.addObserver(
             self,
             selector: #selector(contextModelsChanged),
             name: ModelContext._swiftDataModelsChangedInContext,
-            object: nil)
-
-        NotificationCenter.default.addObserver(
-            self,
-            selector: #selector(swiftDataModelsChanged),
-            name: ModelContext.swiftDataModelsChangedInContext,
             object: nil)
 
         NotificationCenter.default.addObserver(
