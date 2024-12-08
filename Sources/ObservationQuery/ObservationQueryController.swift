@@ -1,5 +1,5 @@
-import CoreData
 import Combine
+import CoreData
 import Foundation
 import SwiftData
 import SwiftUI
@@ -35,7 +35,7 @@ extension ModelContext {
                 }
             }
             .store(in: &self.cancellables)
-        
+
         NotificationCenter.default.addObserver(
             self,
             selector: #selector(contextModelsChanged),
@@ -76,6 +76,8 @@ extension ModelContext {
     }
 
     public func immediateUpdate() {
+        self._results = nil
+
         if Thread.isMainThread {
             _immediateUpdate()
         } else {
@@ -84,24 +86,19 @@ extension ModelContext {
             }
         }
     }
-    
+
     private func _immediateUpdate() {
         if let transaction {
             withTransaction(transaction) {
-                onMutation?({ [weak self] in
-                    self?._results = nil
-                })
+                onMutation?({})
             }
         } else if let animation {
             withAnimation(animation) {
-                onMutation?({ [weak self] in
-                    self?._results = nil
-                })
+                onMutation?({})
+
             }
         } else {
-            onMutation?({ [weak self] in
-                self?._results = nil
-            })
+            onMutation?({})
         }
     }
 
