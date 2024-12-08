@@ -76,6 +76,16 @@ extension ModelContext {
     }
 
     public func immediateUpdate() {
+        if Thread.isMainThread {
+            _immediateUpdate()
+        } else {
+            DispatchQueue.main.async {
+                self._immediateUpdate()
+            }
+        }
+    }
+    
+    private func _immediateUpdate() {
         if let transaction {
             withTransaction(transaction) {
                 onMutation?({ [weak self] in
